@@ -1,3 +1,5 @@
+import os
+import glob
 import subprocess
 from colorama import init, Fore, Style
 
@@ -24,6 +26,11 @@ def run_listing(name: str, listing_path: str):
 if __name__ == "__main__":
 
     init()
+
+    print(f"{Fore.GREEN}deleting all old listing files{Style.RESET_ALL}")
+    for file in glob.glob("listing*"):
+        os.remove(file)
+
     print(f"{Fore.GREEN}building the decoder{Style.RESET_ALL}")
     subprocess.call("build.bat")
 
