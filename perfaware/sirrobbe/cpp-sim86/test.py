@@ -40,3 +40,4 @@ if __name__ == "__main__":
     run_listing("listing-0037", "..\\..\\part1\\listing_0037_single_register_mov")
     run_listing("listing-0038", "..\\..\\part1\\listing_0038_many_register_mov")
     run_listing("listing-0039", "..\\..\\part1\\listing_0039_more_movs")
+    run_listing("listing-0040", "..\\..\\part1\\listing_0040_challenge_movs")
