@@ -78,10 +78,30 @@ i32 main(i32 argc, char* argv[])
           {
             src = regNameA;
             dest = regNameB;
+
+            if(isSimMode)
+            {
+              i16 newValue = registers[reg];
+              i16 oldValue = registers[rm];
+
+              registers[rm] = newValue;
+              printf("mov %s, %s ; %s:0x%x->0x%x\n", dest, src, dest, oldValue, newValue);
+              break;
+            }
           } else
           {
             src = regNameB;
             dest = regNameA;
+
+            if(isSimMode)
+            {
+              i16 newValue = registers[rm];
+              i16 oldValue = registers[reg];
+
+              registers[reg] = newValue;
+              printf("mov %s, %s ; %s:0x%x->0x%x\n", dest, src, dest, oldValue, newValue);
+              break;
+            }
           }
 
           printf("mov %s, %s\n", dest, src);
@@ -426,7 +446,7 @@ i32 main(i32 argc, char* argv[])
 
   if(isSimMode)
   {
-    printf("Final registers:\n");
+    printf("\nFinal registers:\n");
     for(i32 i = 0; i < 8; i++)
     {
       printf("\t%s: 0x%0*x (%d)\n", regTable[i][1], 4, registers[i], registers[i]);
