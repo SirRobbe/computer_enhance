@@ -37,6 +37,9 @@ i32 main(i32 argc, char* argv[])
   bool isSimMode = strcmp(mode, SimulationOption) == 0;
 
   i16 registers[8] = {};
+  bool zeroFlag = false;
+  bool signedFlag = false;
+  char flagString[3] = {'0', '0', '\0'};
 
   if(strcmp(mode, PrintOption) == 0)
   {
@@ -183,7 +186,10 @@ i32 main(i32 argc, char* argv[])
           break;
         }
 
-        case OpCode::AddRegisterOrMemoryAndRegister: {
+        case OpCode::AddRegisterOrMemoryAndRegister:
+        case OpCode::SubRegisterOrMemoryAndRegister:
+        case OpCode::CmpRegisterOrMemoryAndRegister: {
+          u8 operation = (memory[index] >> 3) & 0b111;
           u8 d = (memory[index] >> 1) & 1;
           u8 w = memory[index] & 1;
           u8 mod = (memory[index + 1] >> 6) & 0b11;
@@ -196,6 +202,21 @@ i32 main(i32 argc, char* argv[])
           const char* regNameA = regTable[reg][w];
           const char* regNameB = GetRegisterOrMemory(mod, rm, w, memory, &index, buffer);
 
+          const char* op = nullptr;
+
+          switch(operation)
+          {
+          case 0b000:
+            op = "add";
+            break;
+          case 0b101:
+            op = "sub";
+            break;
+          case 0b111:
+            op = "cmp";
+            break;
+          }
+
           const char* dest = nullptr;
           const char* src = nullptr;
 
@@ -203,13 +224,108 @@ i32 main(i32 argc, char* argv[])
           {
             src = regNameA;
             dest = regNameB;
+
+            if(isSimMode)
+            {
+              char oldFlags[3] = {flagString[0], flagString[1], flagString[2]};
+              i16 a = registers[rm];
+              i16 b = registers[reg];
+              i16 result = 0;
+
+              if(operation == 0b000)
+              {
+                result = a + b;
+                registers[rm] = result;
+
+                zeroFlag = result == 0 ? true : false;
+                signedFlag = result < 0 ? true : false;
+
+                flagString[0] = zeroFlag ? 'Z' : '0';
+                flagString[1] = signedFlag ? 'S' : '0';
+
+                printf("%s %s, %s ; %s:0x%x->0x%x flags:%s->%s\n", op, dest, src, dest, a, result, oldFlags, flagString);
+                break;
+              }
+              else
+              {
+                result = a - b;
+
+                if(operation == 0b101)
+                {
+                  zeroFlag = result == 0 ? true : false;
+                  signedFlag = result < 0 ? true : false;
+                  flagString[0] = zeroFlag ? 'Z' : '0';
+                  flagString[1] = signedFlag ? 'S' : '0';
+
+                  registers[rm] = result;
+                  printf("%s %s, %s ; %s:0x%x->0x%x flags:%s->%s\n", op, dest, src, dest, a, result, oldFlags, flagString);
+                  break;
+                }
+                else
+                {
+                  zeroFlag = result == 0 ? true : false;
+                  flagString[0] = zeroFlag ? 'Z' : '0';
+                  flagString[1] = '0';
+                  printf("%s %s, %s ; flags:%s->%s\n", op, dest, src, oldFlags, flagString);
+                  break;
+                }
+              }
+            }
+
           } else
           {
             src = regNameB;
             dest = regNameA;
+
+            if(isSimMode)
+            {
+              char oldFlags[3] = {flagString[0], flagString[1], flagString[2]};
+              i16 a = registers[reg];
+              i16 b = registers[rm];
+              i16 result = 0;
+
+              if(operation == 0b000)
+              {
+                result = a + b;
+                registers[reg] = result;
+
+                zeroFlag = result == 0 ? true : false;
+                signedFlag = result < 0 ? true : false;
+
+                flagString[0] = zeroFlag ? 'Z' : '0';
+                flagString[1] = signedFlag ? 'S' : '0';
+
+                printf("%s %s, %s ; %s:0x%x->0x%x flags:%s->%s\n", op, dest, src, dest, a, result, oldFlags, flagString);
+                break;
+              }
+              else
+              {
+                result = a - b;
+
+                if(operation == 0b101)
+                {
+                  zeroFlag = result == 0 ? true : false;
+                  signedFlag = result < 0 ? true : false;
+                  flagString[0] = zeroFlag ? 'Z' : '0';
+                  flagString[1] = signedFlag ? 'S' : '0';
+
+                  registers[rm] = result;
+                  printf("%s %s, %s ; %s:0x%x->0x%x flags:%s->%s\n", op, dest, src, dest, a, result, oldFlags, flagString);
+                  break;
+                }
+                else
+                {
+                  zeroFlag = result == 0 ? true : false;
+                  flagString[0] = zeroFlag ? 'Z' : '0';
+                  flagString[1] = '0';
+                  printf("%s %s, %s ; flags:%s->%s\n", op, dest, src, oldFlags, flagString);
+                  break;
+                }
+              }
+            }
           }
 
-          printf("add %s, %s\n", dest, src);
+          printf("%s %s, %s\n", op, dest, src);
 
           break;
         }
@@ -269,6 +385,60 @@ i32 main(i32 argc, char* argv[])
 
             if(mod == 0b11)
             {
+              if(isSimMode)
+              {
+                 char oldFlags[3] = {flagString[0], flagString[1], flagString[2]};
+                i16 a = registers[rm];
+                i16 b = val;
+
+                i16 result = 0;
+
+                if(operation == 0b000)
+                {
+                  result = a + b;
+                  registers[rm] = result;
+
+                  zeroFlag = result == 0 ? true : false;
+                  signedFlag = result < 0 ? true : false;
+
+                  flagString[0] = zeroFlag ? 'Z' : '0';
+                  flagString[1] = signedFlag ? 'S' : '0';
+
+                  printf("%s %s, %d ; %s:0x%x->0x%x flags:%s->%s\n", op, dest, b, dest, a, result, oldFlags, flagString);
+                  break;
+                } else
+                {
+                  result = a - b;
+
+                  if(operation == 0b101)
+                  {
+                    zeroFlag = result == 0 ? true : false;
+                    signedFlag = result < 0 ? true : false;
+                    flagString[0] = zeroFlag ? 'Z' : '0';
+                    flagString[1] = signedFlag ? 'S' : '0';
+
+                    registers[rm] = result;
+                    printf("%s %s, %d ; %s:0x%x->0x%x flags:%s->%s\n",
+                           op,
+                           dest,
+                           b,
+                           dest,
+                           a,
+                           result,
+                           oldFlags,
+                           flagString);
+                    break;
+                  } else
+                  {
+                    zeroFlag = result == 0 ? true : false;
+                    flagString[0] = zeroFlag ? 'Z' : '0';
+                    flagString[1] = '0';
+                    printf("%s %s, %d ; flags:%s->%s\n", op, dest, b, oldFlags, flagString);
+                    break;
+                  }
+                }
+              }
+
               printf("%s %s, %d\n", op, dest, (int16_t)val);
             } else
             {
@@ -296,37 +466,6 @@ i32 main(i32 argc, char* argv[])
           break;
         }
 
-        case OpCode::SubRegisterOrMemoryAndRegister: {
-          u8 d = (memory[index] >> 1) & 1;
-          u8 w = memory[index] & 1;
-          u8 mod = (memory[index + 1] >> 6) & 0b11;
-          u8 reg = (memory[index + 1] >> 3) & 0b111;
-          u8 rm = memory[index + 1] & 0b111;
-
-          index += 2;
-
-          char buffer[64];
-          const char* regNameA = regTable[reg][w];
-          const char* regNameB = GetRegisterOrMemory(mod, rm, w, memory, &index, buffer);
-
-          const char* dest = nullptr;
-          const char* src = nullptr;
-
-          if(d == 0)
-          {
-            src = regNameA;
-            dest = regNameB;
-          } else
-          {
-            src = regNameB;
-            dest = regNameA;
-          }
-
-          printf("sub %s, %s\n", dest, src);
-
-          break;
-        }
-
         case OpCode::SubImmediateToAccumulator: {
           u8 w = memory[index] & 1;
           index += 1;
@@ -340,37 +479,6 @@ i32 main(i32 argc, char* argv[])
           {
             printf("sub ax, %d\n", (int16_t)value);
           }
-
-          break;
-        }
-
-        case OpCode::CmpRegisterOrMemoryAndRegister: {
-          u8 d = (memory[index] >> 1) & 1;
-          u8 w = memory[index] & 1;
-          u8 mod = (memory[index + 1] >> 6) & 0b11;
-          u8 reg = (memory[index + 1] >> 3) & 0b111;
-          u8 rm = memory[index + 1] & 0b111;
-
-          index += 2;
-
-          char buffer[64];
-          const char* regNameA = regTable[reg][w];
-          const char* regNameB = GetRegisterOrMemory(mod, rm, w, memory, &index, buffer);
-
-          const char* dest = nullptr;
-          const char* src = nullptr;
-
-          if(d == 0)
-          {
-            src = regNameA;
-            dest = regNameB;
-          } else
-          {
-            src = regNameB;
-            dest = regNameA;
-          }
-
-          printf("cmp %s, %s\n", dest, src);
 
           break;
         }
@@ -451,6 +559,7 @@ i32 main(i32 argc, char* argv[])
     {
       printf("\t%s: 0x%0*x (%d)\n", regTable[i][1], 4, registers[i], registers[i]);
     }
+    printf("\tflags:%s\n", flagString);
   }
 
   return 0;
