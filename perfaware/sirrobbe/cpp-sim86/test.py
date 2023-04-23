@@ -49,3 +49,5 @@ if __name__ == "__main__":
     run_listing("listing-0043", "..\\..\\part1\\listing_0043_immediate_movs", "--sim")
     run_listing("listing-0044", "..\\..\\part1\\listing_0044_register_movs", "--sim")
     run_listing("listing-0046", "..\\..\\part1\\listing_0046_add_sub_cmp", "--sim")
+    run_listing("listing-0048", "..\\..\\part1\\listing_0048_ip_register", "--sim")
+    run_listing("listing-0049", "..\\..\\part1\\listing_0049_conditional_jumps", "--sim")

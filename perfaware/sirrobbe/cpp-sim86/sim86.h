@@ -6,6 +6,8 @@
 // Basic typedefs for the standardized sized integers for shorter
 // more readable names.
 typedef uint8_t u8;
+typedef uint16_t u16;
+
 typedef int16_t i16;
 typedef int32_t i32;
 
@@ -72,10 +74,10 @@ struct InstructionLiteral
 const char* JumpOpCodeToMnemonic(OpCode code);
 
 // Reads one ore two bytes from the specified position of the program
-i32 ReadValue(u8* memory, i32* index, u8 w);
+i32 ReadValue(u8* memory, u16* index, u8 w);
 
 // Returns the name of the register or the memory address specified by the reg field
-const char* GetRegisterOrMemory(u8 mod, u8 rm, u8 w, u8* memory, i32* index, char* buffer);
+const char* GetRegisterOrMemory(u8 mod, u8 rm, u8 w, u8* memory, u16* index, char* buffer);
 
 // Look up table for all register names
 const char* regTable[][2] = {

@@ -46,10 +46,10 @@ i32 main(i32 argc, char* argv[])
     printf("bits 16\n");
   }
 
-  i32 index = 0;
-  while(index < fileSize)
+  u16 instructionPointer = 0;
+  while(instructionPointer < fileSize)
   {
-    u8 instruction = memory[index];
+    u8 instruction = memory[instructionPointer];
     bool foundInstruction = false;
 
     for(i32 instructionIndex = 0; instructionIndex < instructionCount; instructionIndex++)
@@ -62,17 +62,17 @@ i32 main(i32 argc, char* argv[])
         switch(literal.Code)
         {
         case OpCode::MoveRegisterOrMemoryToOrFromRegister: {
-          u8 d = (memory[index] >> 1) & 1;
-          u8 w = memory[index] & 1;
-          u8 mod = (memory[index + 1] >> 6) & 0b11;
-          u8 reg = (memory[index + 1] >> 3) & 0b111;
-          u8 rm = memory[index + 1] & 0b111;
+          u8 d = (memory[instructionPointer] >> 1) & 1;
+          u8 w = memory[instructionPointer] & 1;
+          u8 mod = (memory[instructionPointer + 1] >> 6) & 0b11;
+          u8 reg = (memory[instructionPointer + 1] >> 3) & 0b111;
+          u8 rm = memory[instructionPointer + 1] & 0b111;
 
-          index += 2;
+          instructionPointer += 2;
 
           char buffer[64];
           const char* regNameA = regTable[reg][w];
-          const char* regNameB = GetRegisterOrMemory(mod, rm, w, memory, &index, buffer);
+          const char* regNameB = GetRegisterOrMemory(mod, rm, w, memory, &instructionPointer, buffer);
 
           const char* dest = nullptr;
           const char* src = nullptr;
@@ -112,15 +112,15 @@ i32 main(i32 argc, char* argv[])
         }
 
         case OpCode::ImmediateToRegisterOrMemory: {
-          u8 w = memory[index] & 1;
-          u8 mod = (memory[index + 1] >> 6) & 0b11;
-          u8 rm = (memory[index + 1]) & 0b111;
-          index += 2;
+          u8 w = memory[instructionPointer] & 1;
+          u8 mod = (memory[instructionPointer + 1] >> 6) & 0b11;
+          u8 rm = (memory[instructionPointer + 1]) & 0b111;
+          instructionPointer += 2;
 
           char buffer[64];
-          const char* dest = GetRegisterOrMemory(mod, rm, w, memory, &index, buffer);
+          const char* dest = GetRegisterOrMemory(mod, rm, w, memory, &instructionPointer, buffer);
 
-          i32 value = ReadValue(memory, &index, w);
+          i32 value = ReadValue(memory, &instructionPointer, w);
 
           if(mod == 0b11)
           {
@@ -146,10 +146,10 @@ i32 main(i32 argc, char* argv[])
         }
 
         case OpCode::MoveImmediateToRegister: {
-          u8 w = (memory[index] >> 3) & 1;
-          u8 reg = memory[index] & 0b111;
-          index += 1;
-          i32 value = ReadValue(memory, &index, w);
+          u8 w = (memory[instructionPointer] >> 3) & 1;
+          u8 reg = memory[instructionPointer] & 0b111;
+          instructionPointer += 1;
+          i32 value = ReadValue(memory, &instructionPointer, w);
 
           char buffer[64];
           const char* dest = regTable[reg][w];
@@ -171,17 +171,17 @@ i32 main(i32 argc, char* argv[])
         }
 
         case OpCode::MemoryToAccumulator: {
-          u8 w = memory[index] & 1;
-          index += 1;
-          i32 address = ReadValue(memory, &index, w);
+          u8 w = memory[instructionPointer] & 1;
+          instructionPointer += 1;
+          i32 address = ReadValue(memory, &instructionPointer, w);
           printf("mov ax, [%d]\n", address);
           break;
         }
 
         case OpCode::AccumulatorToMemory: {
-          u8 w = memory[index] & 1;
-          index += 1;
-          i32 address = ReadValue(memory, &index, w);
+          u8 w = memory[instructionPointer] & 1;
+          instructionPointer += 1;
+          i32 address = ReadValue(memory, &instructionPointer, w);
           printf("mov [%d], ax\n", address);
           break;
         }
@@ -189,18 +189,18 @@ i32 main(i32 argc, char* argv[])
         case OpCode::AddRegisterOrMemoryAndRegister:
         case OpCode::SubRegisterOrMemoryAndRegister:
         case OpCode::CmpRegisterOrMemoryAndRegister: {
-          u8 operation = (memory[index] >> 3) & 0b111;
-          u8 d = (memory[index] >> 1) & 1;
-          u8 w = memory[index] & 1;
-          u8 mod = (memory[index + 1] >> 6) & 0b11;
-          u8 reg = (memory[index + 1] >> 3) & 0b111;
-          u8 rm = memory[index + 1] & 0b111;
+          u8 operation = (memory[instructionPointer] >> 3) & 0b111;
+          u8 d = (memory[instructionPointer] >> 1) & 1;
+          u8 w = memory[instructionPointer] & 1;
+          u8 mod = (memory[instructionPointer + 1] >> 6) & 0b11;
+          u8 reg = (memory[instructionPointer + 1] >> 3) & 0b111;
+          u8 rm = memory[instructionPointer + 1] & 0b111;
 
-          index += 2;
+          instructionPointer += 2;
 
           char buffer[64];
           const char* regNameA = regTable[reg][w];
-          const char* regNameB = GetRegisterOrMemory(mod, rm, w, memory, &index, buffer);
+          const char* regNameB = GetRegisterOrMemory(mod, rm, w, memory, &instructionPointer, buffer);
 
           const char* op = nullptr;
 
@@ -333,13 +333,13 @@ i32 main(i32 argc, char* argv[])
         case OpCode::AddImmediateToRegisterOrMemory:
         case OpCode::SubImmediateToRegisterOrMemory:
         case OpCode::CmpImmediateToRegisterOrMemory: {
-          u8 s = (memory[index] >> 1) & 1;
-          u8 w = memory[index] & 1;
-          u8 operation = (memory[index + 1] >> 3) & 0b111;
-          u8 mod = (memory[index + 1] >> 6) & 0b11;
-          u8 rm = memory[index + 1] & 0b111;
+          u8 s = (memory[instructionPointer] >> 1) & 1;
+          u8 w = memory[instructionPointer] & 1;
+          u8 operation = (memory[instructionPointer + 1] >> 3) & 0b111;
+          u8 mod = (memory[instructionPointer + 1] >> 6) & 0b11;
+          u8 rm = memory[instructionPointer + 1] & 0b111;
 
-          index += 2;
+          instructionPointer += 2;
 
           char buffer[64];
           const char* op = nullptr;
@@ -357,11 +357,11 @@ i32 main(i32 argc, char* argv[])
             break;
           }
 
-          const char* dest = GetRegisterOrMemory(mod, rm, w, memory, &index, buffer);
+          const char* dest = GetRegisterOrMemory(mod, rm, w, memory, &instructionPointer, buffer);
 
           if(w == 0)
           {
-            i32 val = ReadValue(memory, &index, 0);
+            i32 val = ReadValue(memory, &instructionPointer, 0);
 
             if(mod == 0b11)
             {
@@ -373,7 +373,7 @@ i32 main(i32 argc, char* argv[])
           } else
           {
             u8 size = s == 1 ? 0 : 1;
-            i32 val = ReadValue(memory, &index, size);
+            i32 val = ReadValue(memory, &instructionPointer, size);
             if(s == 1)
             {
 
@@ -450,10 +450,10 @@ i32 main(i32 argc, char* argv[])
         }
 
         case OpCode::AddImmediateToAccumulator: {
-          u8 w = memory[index] & 1;
-          index += 1;
+          u8 w = memory[instructionPointer] & 1;
+          instructionPointer += 1;
 
-          i32 value = ReadValue(memory, &index, w);
+          i32 value = ReadValue(memory, &instructionPointer, w);
 
           if(w == 0)
           {
@@ -467,10 +467,10 @@ i32 main(i32 argc, char* argv[])
         }
 
         case OpCode::SubImmediateToAccumulator: {
-          u8 w = memory[index] & 1;
-          index += 1;
+          u8 w = memory[instructionPointer] & 1;
+          instructionPointer += 1;
 
-          i32 value = ReadValue(memory, &index, w);
+          i32 value = ReadValue(memory, &instructionPointer, w);
 
           if(w == 0)
           {
@@ -484,10 +484,10 @@ i32 main(i32 argc, char* argv[])
         }
 
         case OpCode::CmpImmediateToAccumulator: {
-          u8 w = memory[index] & 1;
-          index += 1;
+          u8 w = memory[instructionPointer] & 1;
+          instructionPointer += 1;
 
-          i32 value = ReadValue(memory, &index, w);
+          i32 value = ReadValue(memory, &instructionPointer, w);
 
           if(w == 0)
           {
@@ -520,24 +520,39 @@ i32 main(i32 argc, char* argv[])
         case OpCode::LoopWhileZero:
         case OpCode::LoopWhileNotZero:
         case OpCode::JumpOnCxZero: {
-          index += 1;
-          int8_t offset = ReadValue(memory, &index, 0);
-
-          // NOTE(Fabi): We have to offset by the instruction length
-          //             because nasm does, subtract the instruction
-          //             length from the offset if you use the '$' to
-          //             to mark an offset
-          offset += 2;
-
+          instructionPointer += 1;
+          int8_t offset = ReadValue(memory, &instructionPointer, 0);
           const char* op = JumpOpCodeToMnemonic(literal.Code);
 
-          if(offset >= 0)
+          if(literal.Code == OpCode::JumpOnNotEqual && isSimMode)
           {
-            printf("%s $+%d\n", op, offset);
+            u16 oldInstructionPointer = instructionPointer;
+            if(!zeroFlag)
+            {
+              instructionPointer += offset;
+            }
+
+            printf("%s $%d ; ip:0x%x->0x%x\n", op, offset + 2, oldInstructionPointer, oldInstructionPointer);
           } else
           {
-            printf("%s $%d\n", op, offset);
+            offset += 2;
+            if(offset >= 0)
+            {
+              // NOTE(Fabi): We have to offset by the instruction length
+              //             because nasm does, subtract the instruction
+              //             length from the offset if you use the '$' to
+              //             to mark an offset
+              printf("%s $+%d\n", op, offset);
+            } else
+            {
+              // NOTE(Fabi): We have to offset by the instruction length
+              //             because nasm does, subtract the instruction
+              //             length from the offset if you use the '$' to
+              //             to mark an offset
+              printf("%s $%d\n", op, offset);
+            }
           }
+
           break;
         }
         }
@@ -559,6 +574,8 @@ i32 main(i32 argc, char* argv[])
     {
       printf("\t%s: 0x%0*x (%d)\n", regTable[i][1], 4, registers[i], registers[i]);
     }
+
+    printf("\tip: 0x%0*x (%d)\n", 4, instructionPointer, instructionPointer);
     printf("\tflags:%s\n", flagString);
   }
 
@@ -614,7 +631,7 @@ const char* JumpOpCodeToMnemonic(OpCode code)
   }
 }
 
-i32 ReadValue(u8* memory, i32* index, u8 w)
+i32 ReadValue(u8* memory, u16* index, u8 w)
 {
   i32 value = 0;
   if(w == 0)
@@ -631,7 +648,7 @@ i32 ReadValue(u8* memory, i32* index, u8 w)
   return value;
 }
 
-const char* GetRegisterOrMemory(u8 mod, u8 rm, u8 w, u8* memory, i32* index, char* buffer)
+const char* GetRegisterOrMemory(u8 mod, u8 rm, u8 w, u8* memory, u16* index, char* buffer)
 {
   if(mod == 0b11)
   {
