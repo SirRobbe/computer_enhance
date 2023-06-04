@@ -1,6 +1,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <cassert>
 
 #include "sim86.h"
 
@@ -70,6 +71,9 @@ i32 main(i32 argc, char* argv[])
 
           instructionPointer += 2;
 
+          u16 oldIp = instructionPointer;
+          u16 address = 0;
+
           char buffer[64];
           const char* regNameA = regTable[reg][w];
           const char* regNameB = GetRegisterOrMemory(mod, rm, w, memory, &instructionPointer, buffer);
@@ -85,9 +89,89 @@ i32 main(i32 argc, char* argv[])
             if(isSimMode)
             {
               i16 newValue = registers[reg];
-              i16 oldValue = registers[rm];
+              i16 oldValue = 0;
 
-              registers[rm] = newValue;
+              if(mod == 0b11)
+              {
+                i16 oldValue = registers[rm];
+              }
+              else
+              {
+                if(mod == 0)
+                {
+                  switch(rm)
+                  {
+                  case 0b000: {
+                    address = registers[3] + registers[6];
+                    break;
+                  }
+
+                  case 0b001: {
+                    address = registers[3] + registers[7];
+                    break;
+                  }
+
+                  case 0b010: {
+                    address = registers[5] + registers[6];
+                    break;
+                  }
+
+                  case 0b011: {
+                    address = registers[5] + registers[7];
+                    break;
+                  }
+
+                  case 0b100: {
+                    address = registers[6];
+                    break;
+                  }
+
+                  case 0b101: {
+                    address = registers[7];
+                    break;
+                  }
+
+                  case 0b110: {
+                    address = ReadValue(memory, &oldIp, w);
+                    break;
+                  }
+
+                  case 0b111: {
+                    address = registers[3];
+                    break;
+                  }
+                  }
+
+                  i8 low = memory[address];
+                  i8 high = memory[address + 1];
+                  oldValue = high;
+                  oldValue = oldValue << 8;
+                  oldValue = oldValue | low;
+                }
+                else
+                {
+                  u8 size = mod == 1 ? 0 : 1;
+                  i16 offset = ReadValue(memory, &oldIp, size);
+                  i16 baseAddress = registers[rm];
+                  u16 address = baseAddress + offset;
+                  i8 low = memory[address];
+                  i8 high = memory[address + 1];
+                  oldValue = high;
+                  oldValue = oldValue << 8;
+                  oldValue = oldValue | low;
+                }
+              }
+              
+              if(mod == 0b11)
+              {
+                registers[rm] = newValue;
+              }
+              else
+              {
+                memory[address] = newValue & 0xff;
+                memory[address + 1] = (newValue & 0xff00) >> 8;
+              }
+              
               printf("mov %s, %s ; %s:0x%x->0x%x\n", dest, src, dest, oldValue, newValue);
               break;
             }
@@ -98,8 +182,45 @@ i32 main(i32 argc, char* argv[])
 
             if(isSimMode)
             {
-              i16 newValue = registers[rm];
+              i16 newValue = 0;
               i16 oldValue = registers[reg];
+
+              if(mod == 0b11)
+              {
+                i16 newValue = registers[rm];
+              }
+              else
+              {
+                if(mod == 0)
+                {
+                  if(rm == 0b110)
+                  {
+                    u16 address = ReadValue(memory, &oldIp, w);
+                    i8 low = memory[address];
+                    i8 high = memory[address + 1];
+                    newValue = high;
+                    newValue = newValue << 8;
+                    newValue = newValue | low;
+                  } 
+                  else
+                  {
+                    assert(false);
+                    // const char* address = effectiveAddressCalculationTable[rm];
+                    // sprintf(buffer, "[%s]", address);
+                  }
+                } else
+                {
+                  u8 size = mod == 1 ? 0 : 1;
+                  i16 offset = ReadValue(memory, &oldIp, size);
+                  i16 baseAddress = registers[rm];
+                  u16 address = baseAddress + offset;
+                  i8 low = memory[address];
+                  i8 high = memory[address + 1];
+                  newValue = high;
+                  newValue = newValue << 8;
+                  newValue = newValue | low;
+                }
+              }
 
               registers[reg] = newValue;
               printf("mov %s, %s ; %s:0x%x->0x%x\n", dest, src, dest, oldValue, newValue);
@@ -117,6 +238,7 @@ i32 main(i32 argc, char* argv[])
           u8 rm = (memory[instructionPointer + 1]) & 0b111;
           instructionPointer += 2;
 
+          u16 oldIp = instructionPointer;
           char buffer[64];
           const char* dest = GetRegisterOrMemory(mod, rm, w, memory, &instructionPointer, buffer);
 
@@ -139,7 +261,44 @@ i32 main(i32 argc, char* argv[])
             char valueBuffer[32];
             const char* format = w == 0 ? "byte %d" : "word %d";
             sprintf(valueBuffer, format, value);
-            printf("mov %s, %s\n", dest, valueBuffer);
+
+            if(isSimMode)
+            {
+              i8 high = (value & 0xff00) >> 8;
+              i8 low = value & 0xff;
+              u16 address = 0;
+
+              if(mod == 0)
+              {
+                if(rm == 0b110)
+                {
+                  address = ReadValue(memory, &oldIp, w);
+                } else
+                {
+                  assert(false);
+                  //const char* address = effectiveAddressCalculationTable[rm];
+                  //sprintf(buffer, "[%s]", address);
+                }
+              } else
+              {
+                u8 size = mod == 1 ? 0 : 1;
+                i16 offset = ReadValue(memory, &oldIp, size);
+                i16 baseAddress = 0;
+                if(rm == 0b111)
+                {
+                  baseAddress = registers[3];
+                }
+                address = baseAddress + offset;                
+              }
+
+              memory[address] = low;
+              memory[address + 1] = high;
+
+              printf("mov %s, %s ; ->%d\n", dest, valueBuffer, value);
+            } else
+            {
+              printf("mov %s, %s\n", dest, valueBuffer);
+            }
           }
 
           break;
