@@ -1,5 +1,6 @@
 import sys
 import json
+import struct
 import random
 from math import sin, cos, asin, sqrt
 
@@ -43,6 +44,8 @@ random.seed(seed)
 pairs = [{}] * coordinate_pairs
 sum = 0
 
+binary = open("results.bin", "wb")
+
 if mode == "normal":
 
     for i in range(coordinate_pairs):
@@ -50,7 +53,11 @@ if mode == "normal":
         pairs[i]["y0"] = random.uniform(-90.0, 90.0)
         pairs[i]["x1"] = random.uniform(-180.0, 180.0)
         pairs[i]["y1"] = random.uniform(-90.0, 90.0)
-        sum += reference_haversine_distance(pairs[i]["x0"], pairs[i]["y0"], pairs[i]["x1"], pairs[i]["y1"], 6372.8)
+        
+        d = reference_haversine_distance(pairs[i]["x0"], pairs[i]["y0"], pairs[i]["x1"], pairs[i]["y1"], 6372.8)
+        bin = struct.pack("f", d)
+        binary.write(bin)
+        sum += d
 
 elif mode == "cluster":
 
@@ -68,7 +75,13 @@ elif mode == "cluster":
         pairs[index]["y0"] = random.uniform(y_min, y_max)
         pairs[index]["x1"] = random.uniform(x_min, x_max)
         pairs[index]["y1"] = random.uniform(y_min, y_max)
-        sum += reference_haversine_distance(pairs[index]["x0"], pairs[index]["y0"], pairs[index]["x1"], pairs[index]["y1"], 6372.8)
+        
+        d = reference_haversine_distance(pairs[index]["x0"], pairs[index]["y0"], pairs[index]["x1"], pairs[index]["y1"], 6372.8)
+        bin = struct.pack("f", d)
+        binary.write(bin)
+        sum += d
+
+binary.close()
 
 data = {"pairs": pairs}
 
