@@ -9,7 +9,7 @@ def square(number: float) -> float:
     return result
 
 def deg_to_rad(deg: float) -> float:
-    result = 0.01745329251994329577 * deg
+    result = 0.01745329238 * deg
     return result
 
 # NOTE(Fabi): EarthRadius is generally expected to be 6372.8
@@ -41,20 +41,20 @@ mode = sys.argv[3]
 
 random.seed(seed)
 
-pairs = [{}] * coordinate_pairs
+pairs = [{} for _ in range(coordinate_pairs)]
 sum = 0
 
 binary = open("results.bin", "wb")
 
 if mode == "normal":
 
-    for i in range(coordinate_pairs):
-        pairs[i]["x0"] = random.uniform(-180.0, 180.0)
-        pairs[i]["y0"] = random.uniform(-90.0, 90.0)
-        pairs[i]["x1"] = random.uniform(-180.0, 180.0)
-        pairs[i]["y1"] = random.uniform(-90.0, 90.0)
+    for pair in pairs:
+        pair["x0"] = round(random.uniform(-180.0, 180.0), 4)
+        pair["y0"] = round(random.uniform(-90.0, 90.0), 4)
+        pair["x1"] = round(random.uniform(-180.0, 180.0), 4)
+        pair["y1"] = round(random.uniform(-90.0, 90.0), 4)
         
-        d = reference_haversine_distance(pairs[i]["x0"], pairs[i]["y0"], pairs[i]["x1"], pairs[i]["y1"], 6372.8)
+        d = reference_haversine_distance(pair["x0"], pair["y0"], pair["x1"], pair["y1"], 6372.8)
         bin = struct.pack("f", d)
         binary.write(bin)
         sum += d

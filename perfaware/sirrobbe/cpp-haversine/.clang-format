@@ -1,0 +1,28 @@
+BasedOnStyle: LLVM
+Language: Cpp
+IndentWidth: 2
+UseTab: Never
+AllowShortBlocksOnASingleLine: Never
+PointerAlignment: Left
+ColumnLimit: 120
+ConstructorInitializerAllOnOneLineOrOnePerLine: false
+AllowAllParametersOfDeclarationOnNextLine: false
+AllowAllArgumentsOnNextLine: false
+AllowAllParametersOfDeclarationOnNextLine: false
+InsertNewlineAtEOF: true
+
+SpaceBeforeParens: false
+
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterFunction: true
+  AfterClass: true
+  AfterStruct: true
+  AfterNamespace: true
+  AfterControlStatement: true
+  AfterEnum: true
+  AfterLambda: true
+  AfterArrayType: true
+
+BinPackArguments: false
+BinPackParameters: false
