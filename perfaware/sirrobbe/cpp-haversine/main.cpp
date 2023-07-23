@@ -20,7 +20,7 @@ static f64 UniformRange(f64 min, f64 max);
 constexpr const char* GenerateCommand = "generate";
 constexpr const char* ComputeCommand = "compute";
 constexpr const char* UniformMode = "uniform";
-
+constexpr const char* ClusterMode = "cluster";
 
 i32 main(i32 argc, char* argv[])
 {
@@ -75,6 +75,54 @@ i32 main(i32 argc, char* argv[])
         fwrite(&distance, sizeof(f64), 1, resultsFile);
       }
     }
+    else if(strcmp(mode, ClusterMode) == 0)
+    {
+      i32 index = 0;
+      i32 clusterCount = 16;
+      i32 pairsPerCluster = pairs / clusterCount;
+
+      for(i32 clusterIndex = 0; clusterIndex < clusterCount; clusterIndex++)
+      {
+        f64 xMin = UniformRange(-180.0, 175.0);
+        f64 xMax = UniformRange(xMin + 1, 180.0);
+        f64 yMin = UniformRange(-90.0, 85.0);
+        f64 yMax = UniformRange(yMin + 1, 90.0);
+
+        for(i32 pairIndex = 0; pairIndex < pairsPerCluster; pairIndex++)
+        {
+          f64 x0 = UniformRange(xMin, xMax);
+          f64 y0 = UniformRange(yMin, yMax);
+          f64 x1 = UniformRange(xMin, xMax);
+          f64 y1 = UniformRange(yMin, yMax);
+
+          // NOTE(Fabi): To be conform with json we are not allowed to have a trailing comma.
+          if(index == pairs - 1)
+          {
+            fprintf(dataFile,
+                    "\t\t{ \"x0\" : %.17f, \"y0\" : %.17f, \"x1\" : %.17f, \"y1\" : %.17f }\n",
+                    x0,
+                    y0,
+                    x1,
+                    y1);
+          } 
+          else
+          {
+            fprintf(dataFile,
+                    "\t\t{ \"x0\" : %.17f, \"y0\" : %.17f, \"x1\" : %.17f, \"y1\" : %.17f },\n",
+                    x0,
+                    y0,
+                    x1,
+                    y1);
+          }
+
+          f64 distance = Haversine(x0, y0, x1, y1, 6372.8);
+          sum += distance;
+          fwrite(&distance, sizeof(f64), 1, resultsFile);
+          index++;
+        }
+      }
+
+    }
 
     fprintf(dataFile, "\t]\n}\n");
     fclose(dataFile);
@@ -90,16 +138,16 @@ i32 main(i32 argc, char* argv[])
     printf("Compute dataset\n");
 
     char* data = ReadFile("data.json", false);
-    printf("Read data\n");
+    printf("Reading data is finished\n");
 
     f64* results = reinterpret_cast<f64*>(ReadFile("results.bin", true));
-    printf("Read results\n");
+    printf("Reading results is finished\n");
 
     auto dataAsString = String(data);
     auto json = ParseJson(&dataAsString);
     free(data);
 
-    f32 sum = 0.f;
+    f64 sum = 0.f;
     
     auto pairsKey = ScopedString(const_cast<char*>("pairs"));
     auto x0Key = ScopedString(const_cast<char*>("x0"));
@@ -112,13 +160,13 @@ i32 main(i32 argc, char* argv[])
     for(i64 index = 0; index < pairs.Count(); index++)
     {
       auto pair = pairs[index].Object;
-      f32 x0 = pair[x0Key].Number;
-      f32 y0 = pair[y0Key].Number;
-      f32 x1 = pair[x1Key].Number;
-      f32 y1 = pair[y1Key].Number;
+      f64 x0 = pair[x0Key].Number;
+      f64 y0 = pair[y0Key].Number;
+      f64 x1 = pair[x1Key].Number;
+      f64 y1 = pair[y1Key].Number;
 
-      f32 distance = Haversine(x0, y0, x1, y1, 6372.8f);
-      f32 expected = results[index];
+      f64 distance = Haversine(x0, y0, x1, y1, 6372.8);
+      f64 expected = results[index];
       
       sum += distance;
     }
