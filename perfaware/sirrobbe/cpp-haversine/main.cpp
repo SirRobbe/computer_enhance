@@ -1,12 +1,10 @@
 #define _CRT_SECURE_NO_WARNINGS
 
 #include <cstdio>
-#include <stdint.h>
 #include <string.h>
 
 #include "Json.h"
-
-typedef int32_t i32;
+#include "Timing.cpp"
 
 static f64 DegToRad(f64 deg);
 static f64 Square(f64 x);
@@ -135,28 +133,38 @@ i32 main(i32 argc, char* argv[])
   }
   else if(strcmp(command, ComputeCommand) == 0)
   {
+    u64 frequency = GetCpuFrequency();
+    u64 computeStart = GetCpuTime();
+
     printf("Compute dataset\n");
 
+    u64 jsonLoadingStart = GetCpuTime();
     char* data = ReadFile("data.json", false);
+    u64 jsonLoadingEnd = GetCpuTime();
     printf("Reading data is finished\n");
 
+    u64 resultsLoadingStart = GetCpuTime();
     f64* results = reinterpret_cast<f64*>(ReadFile("results.bin", true));
+    u64 resultsLoadingEnd = GetCpuTime();
     printf("Reading results is finished\n");
 
+    u64 jsonParsingStart = GetCpuTime();
     auto dataAsString = String(data);
     auto json = ParseJson(&dataAsString);
     free(data);
+    u64 jsonParsingEnd = GetCpuTime();
 
+    u64 setupStart = GetCpuTime();
     f64 sum = 0.f;
-    
     auto pairsKey = ScopedString(const_cast<char*>("pairs"));
     auto x0Key = ScopedString(const_cast<char*>("x0"));
     auto y0Key = ScopedString(const_cast<char*>("y0"));
     auto x1Key = ScopedString(const_cast<char*>("x1"));
     auto y1Key = ScopedString(const_cast<char*>("y1"));
-
     auto pairs = json[pairsKey].Array;
+    u64 setupEnd = GetCpuTime();
 
+    u64 calcStart = GetCpuTime();
     for(i64 index = 0; index < pairs.Count(); index++)
     {
       auto pair = pairs[index].Object;
@@ -170,13 +178,33 @@ i32 main(i32 argc, char* argv[])
       
       sum += distance;
     }
+    u64 calcEnd = GetCpuTime();
 
+    u64 outputStart = GetCpuTime();
     f64 average = sum / pairs.Count();
     f64 expectedResult = results[pairs.Count()];
     printf("result: %f\n", average);
     printf("expected: %f\n", expectedResult);
-
     free(results);
+    u64 outputEnd = GetCpuTime();
+
+    u64 computeEnd = GetCpuTime();
+    f64 speedInGHz = (f64)frequency / (1000 * 1000 * 1000);
+    u64 total = computeEnd - computeStart;
+    f64 totalMs = ((f64)total / frequency) * 1000;
+    u64 jsonLoad = jsonLoadingEnd - jsonLoadingStart;
+    u64 resultLoad = resultsLoadingEnd - resultsLoadingStart;
+    u64 parse = jsonParsingEnd - jsonParsingStart;
+    u64 setup = setupEnd - setupStart;
+    u64 calc = calcEnd - calcStart;
+    u64 output = outputEnd - outputStart;
+    printf("\nTotal time: %fms (%fGHz)\n", totalMs, speedInGHz);
+    printf("Read json: %lld (%.2f%%)\n", jsonLoad, ((f64)jsonLoad / (f64)total) * 100.f);
+    printf("Read results: %lld (%.2f%%)\n", resultLoad, ((f64)resultLoad / (f64)total) * 100.f);
+    printf("Parse json: %lld (%.2f%%)\n", parse, ((f64)parse / (f64)total) * 100.f);
+    printf("Setup: %lld (%.2f%%)\n", setup, ((f64)setup / (f64)total) * 100.f);
+    printf("Compute: %lld (%.2f%%)\n", calc, ((f64)calc / (f64)total) * 100.f);
+    printf("Output: %lld (%.2f%%)\n", output, ((f64)output / (f64)total) * 100.f);
   }
 
   return 0;
