@@ -20,7 +20,7 @@ u64 GetCpuFrequency()
     QueryPerformanceCounter(&performanceCounterStart);
 
     while((performanceCounterEnd.QuadPart - performanceCounterStart.QuadPart)
-        != frequency.QuadPart)
+        < frequency.QuadPart)
     {
         QueryPerformanceCounter(&performanceCounterEnd);
     }

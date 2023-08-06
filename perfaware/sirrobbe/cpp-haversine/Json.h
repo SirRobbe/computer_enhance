@@ -4,6 +4,7 @@
 #include "String.hpp"
 #include "List.hpp"
 #include "Dictionary.hpp"
+#include "Profiling.h"
 
 struct JsonObject;
 class JsonValue;
@@ -103,6 +104,8 @@ const JsonValue JsonNullValue = {JsonValueType::Null, {nullptr}};
 
 INTERNAL JsonObject ParseJson(String* json)
 {
+    BlockProfiler profiler("ParseJson");
+
     List<JsonToken> tokens(256);
 
     // NOTE(Fabian): Clear the whole token structure after parsing.
